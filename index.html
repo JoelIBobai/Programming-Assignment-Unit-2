@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL Rotating Pentagon</title>
+    <style>
+        canvas { border: 1px solid black; display: block; margin: auto; }
+    </style>
+</head>
+<body>
+<canvas id="webglCanvas" width="500" height="500"></canvas>
+<script>
+  // Get the canvas element and set up WebGL context
+
+  const canvas = document.getElementById("webglCanvas");
+
+  const gl = canvas.getContext("webgl");
+
+
+
+  // Check if WebGL is available in the browser
+
+  if (!gl) {
+
+    console.error("WebGL not supported");
+
+  }
+
+
+
+  // Define vertex shader source code for transforming vertex positions
+
+  const vertexShaderSource = `
+
+              attribute vec4 aVertexPosition; // Vertex position attribute
+
+              uniform mat4 uModelViewMatrix; // Model-view matrix uniform
+
+              void main(void) {
+
+                  gl_Position = uModelViewMatrix * aVertexPosition; // Compute final position
+
+              }
+
+          `;
+
+
+
+  // Define fragment shader source code for coloring the pixels
+
+  const fragmentShaderSource = `
+
+              precision mediump float; // Set precision for floating point numbers
+
+              uniform vec4 uColor; // Color uniform variable
+
+              void main(void) {
+
+                  gl_FragColor = uColor; // Set the color of the pixel
+
+              }
+
+          `;
+
+
+
+  // Function to compile shaders and check for errors
+
+  function compileShader(source, type) {
+
+    const shader = gl.createShader(type); // Create a shader object
+
+    gl.shaderSource(shader, source); // Attach source code to shader
+
+    gl.compileShader(shader); // Compile the shader
+
+
+
+    // Check for compilation errors
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+
+      console.error(
+
+        "An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader)
+
+      );
+
+      gl.deleteShader(shader); // Delete shader if compilation failed
+
+      return null;
+
+    }
+
+    return shader; // Return compiled shader
+
+  }
+
+
+
+  // Create and link shaders to a program
+
+  const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
+
+  const fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
+
+
+
+  // Create a shader program and link vertex and fragment shaders
+
+  const shaderProgram = gl.createProgram();
+
+  gl.attachShader(shaderProgram, vertexShader);
+
+  gl.attachShader(shaderProgram, fragmentShader);
+
+  gl.linkProgram(shaderProgram); // Link the program
+
+
+
+  // Use the created shader program for rendering
+
+  gl.useProgram(shaderProgram);
+
+
+
+  // Define vertices for a pentagon shape in normalized device coordinates
+
+  const vertices = new Float32Array([
+
+    0.0,   0.5,   // Top vertex
+
+    0.5,   0.15,  // Top right vertex
+
+    0.3,   -0.4,  // Bottom right vertex
+
+    -0.3,  -0.4,  // Bottom left vertex
+
+    -0.5,   0.15   // Top left vertex
+
+  ]);
+
+
+
+  // Create a buffer to hold vertex data and bind it to WebGL context
+
+  const vertexBuffer = gl.createBuffer();
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW); // Load data into buffer
+
+
+
+  // Get attribute location for vertex position and enable it for use in shaders
+
+  const positionLocation = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+
+  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+  gl.enableVertexAttribArray(positionLocation);
+
+
+
+  // Set up uniforms for color and transformation matrix in shaders
+
+  const colorLocation = gl.getUniformLocation(shaderProgram, "uColor");
+
+  const modelViewMatrixLocation = gl.getUniformLocation(
+
+    shaderProgram,
+
+    "uModelViewMatrix"
+
+  );
+
+
+
+  // Set color to red (RGBA format)
+
+  gl.uniform4f(colorLocation, 1.0, 0.0, 0.0, 1.0); // Red color with full opacity
+
+
+
+  let angle = 0; // Initialize angle for rotation
+
+
+
+  // Render loop function to continuously draw the scene
+
+  function render() {
+
+    angle += 0.01; // Increment angle for continuous rotation
+
+
+
+    // Clear the canvas with a white background before each frame render
+
+    gl.clearColor(1.0, 1.0, 1.0, 1.0); // Set clear color to white
+
+    gl.clear(gl.COLOR_BUFFER_BIT); // Clear the color buffer
+
+
+
+    // Create rotation matrix based on current angle for spinning effect
+
+    const cosA = Math.cos(angle);
+
+    const sinA = Math.sin(angle);
+
+
+
+    const modelViewMatrix = new Float32Array([
+
+      cosA, sinA,   0.0,   0.0,
+
+      -sinA, cosA,   0.0,   0.0,
+
+      0.0,   0.0,    1.0,   0.0,
+
+      0.0,   0.0,    0.0,   1.0 
+
+      ]);
+
+
+
+
+
+  // Pass the model view matrix to the shader program as a uniform variable
+
+  gl.uniformMatrix4fv(modelViewMatrixLocation, false, modelViewMatrix);
+
+
+
+  // Draw the pentagon using triangle fan mode (connects vertices in order)
+
+  gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length / 2);
+
+
+
+  // Request animation frame to create a smooth rendering loop
+
+  requestAnimationFrame(render); 
+
+  }
+
+
+
+  // Start the rendering process by calling the render function initially
+
+  render(); 
+</script>
+</body>
+</html>
